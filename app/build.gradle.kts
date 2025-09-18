@@ -4,8 +4,17 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
-    alias(libs.plugins.google.services)
+    alias(libs.plugins.google.services) apply false
     id("jacoco")
+}
+
+// Apply Google Services plugin only if google-services.json exists to allow CI builds without secrets
+val hasGoogleServicesJson = file("google-services.json").exists()
+if (hasGoogleServicesJson) {
+    apply(plugin = "com.google.gms.google-services")
+    logger.lifecycle("Google Services plugin applied (google-services.json found).")
+} else {
+    logger.lifecycle("Google Services plugin NOT applied (google-services.json missing).")
 }
 
 // Resolve authorized emails from env, file, or local.properties and expose as BuildConfig field

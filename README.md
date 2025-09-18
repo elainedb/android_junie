@@ -1,5 +1,12 @@
 # android_junie
 
+## CI builds without committing google-services.json
+
+The project uses Google Sign-In but does not require the Firebase Google Services Gradle plugin to run unit tests. The build is configured to apply the Google Services plugin only when app/google-services.json is present locally. On CI, where this file is intentionally absent, the plugin is not applied, so tasks like :app:testDebugUnitTest and :app:JacocoDebugCodeCoverage run successfully without secrets.
+
+- Local: keep your app/google-services.json to enable Firebase-related features.
+- CI: do not commit google-services.json. The build script skips applying the plugin when the file is missing.
+
 ## Authorized emails configuration (DO NOT COMMIT secrets)
 
 The list of authorized Google emails is NOT stored in source control. Instead, it is injected at build time and compiled into BuildConfig as AUTHORIZED_EMAILS. The app reads this list at runtime.
