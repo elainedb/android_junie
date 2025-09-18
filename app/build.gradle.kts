@@ -1,4 +1,5 @@
 import java.util.Locale
+import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.application)
@@ -50,6 +51,16 @@ fun List<String>.toJavaStringArrayLiteral(): String {
     ) { "\"$it\"" }
 }
 
+// Load API keys and secrets from environment or config.properties (excluded from VCS)
+val props = Properties()
+val configFile = rootProject.file("config.properties")
+if (configFile.exists()) {
+    props.load(configFile.inputStream())
+}
+val youtubeApiKey: String = System.getenv("YOUTUBE_API_KEY")
+    ?: props.getProperty("youtubeApiKey")
+    ?: ""
+
 android {
     namespace = "dev.elainedb.android_junie"
     compileSdk = 36
@@ -68,6 +79,12 @@ android {
             "String[]",
             "AUTHORIZED_EMAILS",
             authorizedEmailsList.toJavaStringArrayLiteral()
+        )
+        // Expose YouTube API key into BuildConfig
+        buildConfigField(
+            "String",
+            "YOUTUBE_API_KEY",
+            "\"$youtubeApiKey\""
         )
     }
 
@@ -107,6 +124,9 @@ dependencies {
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
+
+    // Image loading for Compose
+    implementation(libs.coil.compose)
 
     // Google Sign-In
     implementation(libs.google.play.services.auth)

@@ -1,5 +1,30 @@
 # android_junie
 
+## YouTube API setup (config.properties)
+
+The Main Screen fetches videos using the YouTube Data API. Provide an API key via one of these methods:
+
+1) Create a config.properties file at the repository root (this file is git-ignored):
+
+```
+youtubeApiKey=YOUR_YOUTUBE_API_KEY
+```
+
+2) Or export an environment variable before building:
+
+- macOS/Linux:
+```
+export YOUTUBE_API_KEY="YOUR_YOUTUBE_API_KEY"
+./gradlew :app:assembleDebug
+```
+- Windows (PowerShell):
+```
+$Env:YOUTUBE_API_KEY = "YOUR_YOUTUBE_API_KEY"
+./gradlew :app:assembleDebug
+```
+
+The key is injected into BuildConfig as YOUTUBE_API_KEY and used by the app at runtime.
+
 ## CI builds without committing google-services.json
 
 The project uses Google Sign-In but does not require the Firebase Google Services Gradle plugin to run unit tests. The build is configured to apply the Google Services plugin only when app/google-services.json is present locally. On CI, where this file is intentionally absent, the plugin is not applied, so tasks like :app:testDebugUnitTest and :app:JacocoDebugCodeCoverage run successfully without secrets.

@@ -1,5 +1,6 @@
 # Ignore local and sensitive files
 local.properties
+config.properties
 
 authorized_emails.txt
 app/authorized_emails.txt
