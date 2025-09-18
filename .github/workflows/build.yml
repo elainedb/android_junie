@@ -41,6 +41,9 @@ permissions:
 jobs:
   Analysis:
     runs-on: ubuntu-latest
+    env:
+      # Use dummy emails in CI so we don't rely on private data
+      AUTHORIZED_EMAILS: "dummy1@example.com,dummy2@example.com"
 
     steps:
       - name: Checkout sources

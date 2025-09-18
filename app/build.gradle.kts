@@ -4,7 +4,41 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.google.services)
     id("jacoco")
+}
+
+// Resolve authorized emails from env, file, or local.properties and expose as BuildConfig field
+val authorizedEmailsList: List<String> = run {
+    val env = System.getenv("AUTHORIZED_EMAILS")
+        ?.split(',')
+        ?.map { it.trim() }
+        ?.filter { it.isNotEmpty() }
+        ?: emptyList()
+
+    val file = rootProject.file("authorized_emails.txt")
+    val fromFile = if (file.exists()) {
+        file.readLines()
+            .map { it.trim() }
+            .filter { it.isNotEmpty() && !it.startsWith("#") }
+    } else emptyList()
+
+    val combined = when {
+        env.isNotEmpty() -> env
+        fromFile.isNotEmpty() -> fromFile
+        else -> listOf("dummy1@example.com", "dummy2@example.com")
+    }
+    combined.distinct()
+}
+
+fun List<String>.toJavaStringArrayLiteral(): String {
+    // Produce a Java array initializer literal: {"a","b"}
+    val escaped = this.map { it.replace("\\", "\\\\").replace("\"", "\\\"") }
+    return escaped.joinToString(
+        prefix = "{",
+        postfix = "}",
+        separator = ","
+    ) { "\"$it\"" }
 }
 
 android {
@@ -19,6 +53,13 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // Expose authorized emails into BuildConfig
+        buildConfigField(
+            "String[]",
+            "AUTHORIZED_EMAILS",
+            authorizedEmailsList.toJavaStringArrayLiteral()
+        )
     }
 
     buildTypes {
@@ -26,6 +67,7 @@ android {
             enableUnitTestCoverage = true
         }
         release {
+            signingConfig = signingConfigs.getByName("debug")
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
@@ -42,6 +84,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -55,6 +98,10 @@ dependencies {
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
+
+    // Google Sign-In
+    implementation(libs.google.play.services.auth)
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

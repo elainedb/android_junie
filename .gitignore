@@ -1,15 +1,19 @@
-*.iml
-.gradle
-/local.properties
-/.idea/caches
-/.idea/libraries
-/.idea/modules.xml
-/.idea/workspace.xml
-/.idea/navEditor.xml
-/.idea/assetWizardSettings.xml
-.DS_Store
-/build
-/captures
-.externalNativeBuild
-.cxx
+# Ignore local and sensitive files
 local.properties
+
+authorized_emails.txt
+app/authorized_emails.txt
+
+debug.keystore
+**/*.keystore
+
+# Android/Gradle typical ignores
+.gradle/
+/local.properties
+**/build/
+.cxx/
+/local-
+.idea/
+.DS_Store
+
+/app/google-services.json
