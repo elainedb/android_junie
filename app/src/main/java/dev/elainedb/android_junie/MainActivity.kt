@@ -17,14 +17,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -34,15 +35,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import dev.elainedb.android_junie.data.VideoItem
-import dev.elainedb.android_junie.data.YouTubeApi
 import dev.elainedb.android_junie.ui.theme.AndroidJunieTheme
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 
 class MainActivity : ComponentActivity() {
 
@@ -87,36 +87,29 @@ class MainActivity : ComponentActivity() {
 
     @Composable
     private fun MainScreen(modifier: Modifier = Modifier, onLogout: () -> Unit) {
-        var isLoading by remember { mutableStateOf(true) }
-        var error by remember { mutableStateOf<String?>(null) }
-        var videos by remember { mutableStateOf<List<VideoItem>>(emptyList()) }
-
-        LaunchedEffect(Unit) {
-            isLoading = true
-            error = null
-            try {
-                videos = withContext(Dispatchers.IO) {
-                    YouTubeApi.fetchLatestVideos(maxPerChannel = 10)
-                }
-            } catch (t: Throwable) {
-                error = t.message ?: "Unknown error"
-            } finally {
-                isLoading = false
-            }
-        }
+        val vm: MainViewModel = viewModel()
+        val state by vm.state.collectAsStateWithLifecycle()
+        var showFilter by remember { mutableStateOf(false) }
+        var showSort by remember { mutableStateOf(false) }
 
         Column(modifier = modifier) {
+            val total = state.allVideos.size
+            val visible = state.filteredSorted.size
+            val titleSuffix = if (total > 0 && visible != total) " ($visible of $total)" else if (total > 0) " ($total)" else ""
             Text(
-                text = "Latest Videos",
+                text = "Latest Videos$titleSuffix",
                 style = MaterialTheme.typography.titleLarge
             )
-            Button(onClick = onLogout, modifier = Modifier.padding(top = 8.dp)) {
-                Text("Logout")
+            Row(modifier = Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(onClick = { vm.refresh(true) }) { Text("Refresh") }
+                Button(onClick = { showFilter = true }) { Text("Filter") }
+                Button(onClick = { showSort = true }) { Text("Sort") }
+                Button(onClick = onLogout) { Text("Logout") }
             }
             Spacer(modifier = Modifier.height(12.dp))
 
             when {
-                isLoading -> {
+                state.isLoading -> {
                     Column(
                         modifier = Modifier.fillMaxSize(),
                         verticalArrangement = Arrangement.Center,
@@ -127,14 +120,15 @@ class MainActivity : ComponentActivity() {
                         Text("Loading...")
                     }
                 }
-                error != null -> {
+                state.error != null -> {
                     Text(
-                        text = "Error: $error",
+                        text = "Error: ${state.error}",
                         color = MaterialTheme.colorScheme.error
                     )
                 }
                 else -> {
-                    if (videos.isEmpty()) {
+                    val list = state.filteredSorted
+                    if (list.isEmpty()) {
                         Column(
                             modifier = Modifier.fillMaxSize(),
                             verticalArrangement = Arrangement.Center,
@@ -149,13 +143,69 @@ class MainActivity : ComponentActivity() {
                         }
                     } else {
                         LazyColumn {
-                            items(videos) { video ->
+                            items(list) { video ->
                                 VideoRow(video) { openYouTube(video.videoId) }
                                 Divider(modifier = Modifier.padding(vertical = 8.dp))
                             }
                         }
                     }
                 }
+            }
+
+            if (showFilter) {
+                val channels = state.allVideos.map { it.channelTitle }.distinct().sorted()
+                val countries = state.allVideos.mapNotNull { it.country }.distinct().sorted()
+                AlertDialog(
+                    onDismissRequest = { showFilter = false },
+                    title = { Text("Filter Options") },
+                    text = {
+                        Column {
+                            Text("Source Channel:")
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                TextButton(onClick = { vm.setChannel(null) }) { Text("All") }
+                            }
+                            channels.forEach { ch ->
+                                TextButton(onClick = { vm.setChannel(ch) }) { Text(ch) }
+                            }
+                            Spacer(Modifier.height(8.dp))
+                            Text("Country:")
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                TextButton(onClick = { vm.setCountry(null) }) { Text("All") }
+                            }
+                            countries.forEach { c ->
+                                TextButton(onClick = { vm.setCountry(c) }) { Text(c) }
+                            }
+                        }
+                    },
+                    confirmButton = {
+                        TextButton(onClick = { showFilter = false }) { Text("Close") }
+                    }
+                )
+            }
+
+            if (showSort) {
+                AlertDialog(
+                    onDismissRequest = { showSort = false },
+                    title = { Text("Sort Options") },
+                    text = {
+                        Column {
+                            Text("By Publication Date:")
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                TextButton(onClick = { vm.setSort(SortField.PUBLICATION_DATE, SortDir.DESC) }) { Text("Newest -> Oldest") }
+                                TextButton(onClick = { vm.setSort(SortField.PUBLICATION_DATE, SortDir.ASC) }) { Text("Oldest -> Newest") }
+                            }
+                            Spacer(Modifier.height(8.dp))
+                            Text("By Recording Date:")
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                TextButton(onClick = { vm.setSort(SortField.RECORDING_DATE, SortDir.DESC) }) { Text("Newest -> Oldest") }
+                                TextButton(onClick = { vm.setSort(SortField.RECORDING_DATE, SortDir.ASC) }) { Text("Oldest -> Newest") }
+                            }
+                        }
+                    },
+                    confirmButton = {
+                        TextButton(onClick = { showSort = false }) { Text("Close") }
+                    }
+                )
             }
         }
     }
@@ -180,7 +230,7 @@ class MainActivity : ComponentActivity() {
         ) {
             AsyncImage(
                 model = video.thumbnailUrl,
-                contentDescription = null,
+                contentDescription = "Thumbnail",
                 modifier = Modifier.size(96.dp)
             )
             Spacer(modifier = Modifier.size(12.dp))
@@ -195,10 +245,31 @@ class MainActivity : ComponentActivity() {
                     text = video.channelTitle,
                     style = MaterialTheme.typography.bodyMedium,
                 )
-                Text(
-                    text = video.publishedAt.take(10),
-                    style = MaterialTheme.typography.bodySmall,
-                )
+                run {
+                    val pub = video.publishedAt.take(10)
+                    val rec = video.recordingDate?.take(10)
+                    val datesLine = if (!rec.isNullOrBlank()) "Published: $pub • Recorded: $rec" else "Published: $pub"
+                    Text(
+                        text = datesLine,
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
+                video.tags?.let { tags ->
+                    if (tags.isNotEmpty()) {
+                        Text(
+                            text = "Tags: ${tags.joinToString()}",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
+                val locParts = listOfNotNull(video.city, video.country).filter { it.isNotBlank() }
+                if (locParts.isNotEmpty() || (video.latitude != null && video.longitude != null)) {
+                    val coords = if (video.latitude != null && video.longitude != null) " (${video.latitude}, ${video.longitude})" else ""
+                    Text(
+                        text = "Location: ${locParts.joinToString(", ")}$coords",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
             }
         }
     }
