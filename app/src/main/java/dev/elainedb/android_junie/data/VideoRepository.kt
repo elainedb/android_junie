@@ -30,6 +30,10 @@ class VideoRepository(private val context: Context) {
         return@withContext enhanced
     }
 
+    suspend fun getVideosWithCoordinatesFromCache(): List<VideoItem> = withContext(Dispatchers.IO) {
+        dao.getAllWithCoordinates().map { it.toDomain() }
+    }
+
     private suspend fun addReverseGeocodedLocations(list: List<VideoItem>): List<VideoItem> = withContext(Dispatchers.IO) {
         val geocoder = try {
             android.location.Geocoder(context, java.util.Locale.getDefault())

@@ -10,6 +10,9 @@ interface VideoDao {
     @Query("SELECT * FROM videos")
     suspend fun getAll(): List<VideoEntity>
 
+    @Query("SELECT * FROM videos WHERE latitude IS NOT NULL AND longitude IS NOT NULL")
+    suspend fun getAllWithCoordinates(): List<VideoEntity>
+
     @Query("SELECT MAX(lastUpdated) FROM videos")
     suspend fun getLastUpdated(): Long?
 

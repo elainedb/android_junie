@@ -35,6 +35,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
@@ -100,13 +101,17 @@ class MainActivity : ComponentActivity() {
                 text = "Latest Videos$titleSuffix",
                 style = MaterialTheme.typography.titleLarge
             )
+
+            val ctx = LocalContext.current
             Row(modifier = Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(onClick = { vm.refresh(true) }) { Text("Refresh") }
                 Button(onClick = { showFilter = true }) { Text("Filter") }
                 Button(onClick = { showSort = true }) { Text("Sort") }
+                Button(onClick = { ctx.startActivity(Intent(ctx, MapActivity::class.java)) }) { Text("Map") }
+            }
+            Row(modifier = Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(onClick = onLogout) { Text("Logout") }
             }
-            Spacer(modifier = Modifier.height(12.dp))
 
             when {
                 state.isLoading -> {
@@ -145,7 +150,7 @@ class MainActivity : ComponentActivity() {
                         LazyColumn {
                             items(list) { video ->
                                 VideoRow(video) { openYouTube(video.videoId) }
-                                Divider(modifier = Modifier.padding(vertical = 8.dp))
+                                Divider()
                             }
                         }
                     }
