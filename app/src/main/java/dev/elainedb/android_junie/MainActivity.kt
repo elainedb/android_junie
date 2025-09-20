@@ -98,10 +98,9 @@ class MainActivity : ComponentActivity() {
             val visible = state.filteredSorted.size
             val titleSuffix = if (total > 0 && visible != total) " ($visible of $total)" else if (total > 0) " ($total)" else ""
             Text(
-                text = "Latest Videos$titleSuffix",
+                text = "Latest  Videos$titleSuffix",
                 style = MaterialTheme.typography.titleLarge
             )
-
             val ctx = LocalContext.current
             Row(modifier = Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(onClick = { vm.refresh(true) }) { Text("Refresh") }
