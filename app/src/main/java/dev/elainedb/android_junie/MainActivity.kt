@@ -101,7 +101,6 @@ class MainActivity : ComponentActivity() {
                 text = "Latest Videos$titleSuffix",
                 style = MaterialTheme.typography.titleLarge
             )
-
             val ctx = LocalContext.current
             Row(modifier = Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(onClick = { vm.refresh(true) }) { Text("Refresh") }
